@@ -168,12 +168,11 @@ def start_shower():
         
         # Emitir evento específico para início do chuveiro
         from src.main import socketio
-        socketio.emit('shower_started', {
-            'username': user.username,
-            'duration': duration,
-            'timestamp': datetime.utcnow().isoformat()
-        }, broadcast=True)
-
+        socketio.emit("shower_started", {
+            "username": user.username,
+            "duration": duration,
+            "timestamp": datetime.utcnow().isoformat()
+        })
         return jsonify({
             'message': 'Uso do chuveiro iniciado',
             'user': user.username,
@@ -213,11 +212,10 @@ def end_shower():
         
         # Emitir evento específico para finalização do chuveiro
         from src.main import socketio
-        socketio.emit('shower_ended', {
-            'username': user.username,
-            'timestamp': datetime.utcnow().isoformat()
-        }, broadcast=True)
-
+        socketio.emit("shower_ended", {
+            "username": user.username,
+            "timestamp": datetime.utcnow().isoformat()
+        })
         return jsonify({
             'message': 'Uso do chuveiro finalizado',
             'user': user.username,
