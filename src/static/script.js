@@ -36,15 +36,25 @@ if ('serviceWorker' in navigator) {
 function requestNotificationPermission() {
     if ('Notification' in window) {
         if (Notification.permission === 'default') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    console.log('Permissão de notificação concedida');
-                    registerForPushNotifications();
-                }
-            });
+            // Mostrar um alerta explicativo antes de pedir permissão
+            if (confirm('Este app precisa de permissão para enviar notificações sobre o uso do chuveiro. Deseja permitir?')) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Permissão de notificação concedida');
+                        showNotification('✅ Notificações Ativadas', 'Você receberá alertas sobre o uso do chuveiro!');
+                        registerForPushNotifications();
+                    } else {
+                        alert('Notificações negadas. Você pode ativar nas configurações do navegador.');
+                    }
+                });
+            }
         } else if (Notification.permission === 'granted') {
             registerForPushNotifications();
+        } else if (Notification.permission === 'denied') {
+            alert('Notificações estão bloqueadas. Para receber alertas, ative nas configurações do navegador.');
         }
+    } else {
+        alert('Seu navegador não suporta notificações.');
     }
 }
 
@@ -68,10 +78,12 @@ function showNotification(title, body, options = {}) {
         icon: '/icon-192.png',
         badge: '/icon-192.png',
         vibrate: [200, 100, 200],
-        requireInteraction: true,
+        requireInteraction: false, // Mudado para false para não bloquear
         persistent: true,
         tag: 'chuveiro-notification',
         renotify: true,
+        silent: false, // Garantir que não seja silenciosa
+        timestamp: Date.now(),
         actions: [
             {
                 action: 'view',
@@ -92,29 +104,108 @@ function showNotification(title, body, options = {}) {
 
     const finalOptions = { ...defaultOptions, ...options };
 
-    if ('Notification' in window && Notification.permission === 'granted') {
-        // Notificação nativa do navegador
-        const notification = new Notification(title, finalOptions);
-        
-        notification.onclick = function() {
-            window.focus();
-            notification.close();
-        };
-
-        // Auto-fechar após 10 segundos se não for interativa
-        if (!finalOptions.requireInteraction) {
-            setTimeout(() => {
-                notification.close();
-            }, 10000);
-        }
-    }
-
-    // Também enviar via Service Worker para garantir que apareça na tela de bloqueio
+    // Primeiro tentar via Service Worker (mais confiável para mobile)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(title, finalOptions);
+            registration.showNotification(title, finalOptions).then(() => {
+                console.log('Notificação enviada via Service Worker');
+            }).catch(err => {
+                console.error('Erro ao enviar notificação via SW:', err);
+                // Fallback para notificação nativa
+                fallbackNotification(title, body, finalOptions);
+            });
+        }).catch(err => {
+            console.error('Service Worker não disponível:', err);
+            // Fallback para notificação nativa
+            fallbackNotification(title, body, finalOptions);
         });
+    } else {
+        // Fallback para notificação nativa
+        fallbackNotification(title, body, finalOptions);
     }
+
+    // Também mostrar notificação na tela do app
+    showInAppNotification(title, body);
+}
+
+function fallbackNotification(title, body, options) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            const notification = new Notification(title, options);
+            
+            notification.onclick = function() {
+                window.focus();
+                notification.close();
+            };
+
+            // Auto-fechar após 8 segundos
+            setTimeout(() => {
+                notification.close();
+            }, 8000);
+        } catch (err) {
+            console.error('Erro ao criar notificação nativa:', err);
+        }
+    }
+}
+
+function showInAppNotification(title, body) {
+    // Criar notificação visual dentro do app
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        max-width: 300px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    notification.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
+        <div style="font-size: 14px;">${body}</div>
+    `;
+
+    // Adicionar animação CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(notification);
+
+    // Remover após 5 segundos
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+
+    // Permitir fechar clicando
+    notification.onclick = function() {
+        notification.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    };
 }
 
 function showShowerNotification(type, username, duration = null) {
@@ -239,9 +330,22 @@ async function register() {
     const email = document.getElementById('registerEmail').value;
     const phone = document.getElementById('registerPhone').value;
     const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
 
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !confirmPassword) {
         alert('Por favor, preencha todos os campos obrigatórios');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        alert('As senhas não coincidem. Por favor, verifique e tente novamente.');
+        document.getElementById('confirmPassword').focus();
+        return;
+    }
+
+    if (password.length < 6) {
+        alert('A senha deve ter pelo menos 6 caracteres.');
+        document.getElementById('registerPassword').focus();
         return;
     }
 
@@ -257,6 +361,14 @@ async function register() {
         if (response.ok) {
             alert('Cadastro realizado com sucesso!');
             showLoginForm();
+            // Limpar campos
+            document.getElementById('registerUsername').value = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPhone').value = '';
+            document.getElementById('registerPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('passwordMatchMessage').textContent = '';
+            document.getElementById('passwordMatchMessage').className = 'password-match-message empty';
         } else {
             alert(data.error || 'Erro no cadastro');
         }
@@ -400,6 +512,40 @@ function showMainApp() {
     setInterval(updateStatus, 5000); // Atualizar a cada 5 segundos
 }
 
+// Função para verificar se as senhas coincidem
+function checkPasswordMatch() {
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const messageElement = document.getElementById('passwordMatchMessage');
+
+    if (confirmPassword === '') {
+        messageElement.textContent = '';
+        messageElement.className = 'password-match-message empty';
+    } else if (password === confirmPassword) {
+        messageElement.textContent = '✅ As senhas coincidem';
+        messageElement.className = 'password-match-message match';
+    } else {
+        messageElement.textContent = '❌ As senhas não coincidem';
+        messageElement.className = 'password-match-message no-match';
+    }
+}
+
+// Função para alternar visibilidade da senha
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.parentElement.querySelector('.password-toggle');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.textContent = '🙈';
+        button.setAttribute('aria-label', 'Ocultar senha');
+    } else {
+        input.type = 'password';
+        button.textContent = '👁️';
+        button.setAttribute('aria-label', 'Mostrar senha');
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Seletor de duração
@@ -424,6 +570,17 @@ document.addEventListener('DOMContentLoaded', function() {
             register();
         }
     });
+
+    // Enter key para confirmação de senha
+    document.getElementById('confirmPassword').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            register();
+        }
+    });
+
+    // Verificar senhas em tempo real
+    document.getElementById('registerPassword').addEventListener('input', checkPasswordMatch);
+    document.getElementById('confirmPassword').addEventListener('input', checkPasswordMatch);
 
     // Verificar se já está logado
     fetch('/api/me')
