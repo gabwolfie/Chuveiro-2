@@ -99,6 +99,57 @@
             background: white;
         }
 
+        .password-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input-container input {
+            padding-right: 50px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+            z-index: 1;
+        }
+
+        .password-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .password-toggle:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+
+        .password-match-message {
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            min-height: 20px;
+        }
+
+        .password-match-message.match {
+            color: #4CAF50;
+        }
+
+        .password-match-message.no-match {
+            color: #f44336;
+        }
+
+        .password-match-message.empty {
+            color: transparent;
+        }
+
         input:focus {
             outline: none;
             border-color: #667eea;
@@ -363,7 +414,12 @@
             
             <div class="form-group">
                 <label for="loginPassword">Senha:</label>
-                <input type="password" id="loginPassword" placeholder="Digite sua senha">
+                <div class="password-input-container">
+                    <input type="password" id="loginPassword" placeholder="Digite sua senha">
+                    <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">
+                        👁️
+                    </button>
+                </div>
             </div>
             
             <div class="checkbox-group">
@@ -397,7 +453,23 @@
             
             <div class="form-group">
                 <label for="registerPassword">Senha:</label>
-                <input type="password" id="registerPassword" placeholder="Digite sua senha">
+                <div class="password-input-container">
+                    <input type="password" id="registerPassword" placeholder="Digite sua senha">
+                    <button type="button" class="password-toggle" onclick="togglePassword('registerPassword')">
+                        👁️
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Confirmar Senha:</label>
+                <div class="password-input-container">
+                    <input type="password" id="confirmPassword" placeholder="Confirme sua senha">
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')">
+                        👁️
+                    </button>
+                </div>
+                <div id="passwordMatchMessage" class="password-match-message"></div>
             </div>
             
             <button class="btn btn-primary" onclick="register()">📝 Cadastrar</button>
