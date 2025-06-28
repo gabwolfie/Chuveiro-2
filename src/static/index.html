@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚿 Chuveiro</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Chuveiro">
+    <meta name="description" content="Sistema de controle de chuveiro do condomínio">
+    
+    <!-- PWA Links -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    
+    <!-- SocketIO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            padding: 0 4px;
+            background: linear-gradient(90deg, #4CAF50, #45a049, #2196F3, #1976D2, #FF9800, #F57C00, #9C27B0, #7B1FA2);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: rainbow 3s ease-in-out infinite;
+        }
+
+        @keyframes rainbow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        input[type="text"], input[type="email"], input[type="password"], input[type="tel"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .checkbox-group label {
+            background: none;
+            -webkit-text-fill-color: #666;
+            color: #666;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(156, 39, 176, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 152, 0, 0.3);
+        }
+
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            border-left: 4px solid;
+        }
+
+        .status-free {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-color: #4caf50;
+        }
+
+        .status-occupied {
+            background: #ffebee;
+            color: #c62828;
+            border-color: #f44336;
+        }
+
+        .duration-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .duration-option {
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .duration-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .duration-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .last-update {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .notification-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .notification-item {
+            padding: 10px;
+            border-left: 3px solid #667eea;
+            background: #f8f9ff;
+            margin-bottom: 8px;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+        }
+
+        .install-prompt {
+            background: #e3f2fd;
+            border: 1px solid #2196F3;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .install-prompt button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .duration-selector {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            
+            .duration-option {
+                padding: 10px 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="notificationBadge" class="notification-badge hidden">0</div>
+        
+        <!-- Install Prompt -->
+        <div id="installPrompt" class="install-prompt hidden">
+            <p>📱 Instale este app na sua tela inicial para acesso rápido!</p>
+            <button onclick="installApp()">Instalar App</button>
+        </div>
+
+        <div class="logo">🚿</div>
+        <h1>Chuveiro</h1>
+
+        <!-- Login Form -->
+        <div id="loginForm">
+            <p class="subtitle">Faça login para continuar</p>
+            
+            <div class="form-group">
+                <label for="loginUsername">Usuário ou Email:</label>
+                <input type="text" id="loginUsername" placeholder="Digite seu usuário ou email">
+            </div>
+            
+            <div class="form-group">
+                <label for="loginPassword">Senha:</label>
+                <input type="password" id="loginPassword" placeholder="Digite sua senha">
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="rememberMe">
+                <label for="rememberMe">Lembrar de mim</label>
+            </div>
+            
+            <button class="btn btn-primary" onclick="login()">🔑 Entrar</button>
+            
+            <a class="link" onclick="showRegisterForm()">Não tem conta? Cadastre-se</a>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="hidden">
+            <p class="subtitle">Crie sua conta</p>
+            
+            <div class="form-group">
+                <label for="registerUsername">Usuário:</label>
+                <input type="text" id="registerUsername" placeholder="Digite seu usuário">
+            </div>
+            
+            <div class="form-group">
+                <label for="registerEmail">Email:</label>
+                <input type="email" id="registerEmail" placeholder="Digite seu email">
+            </div>
+            
+            <div class="form-group">
+                <label for="registerPhone">Celular (opcional):</label>
+                <input type="tel" id="registerPhone" placeholder="Digite seu celular">
+            </div>
+            
+            <div class="form-group">
+                <label for="registerPassword">Senha:</label>
+                <input type="password" id="registerPassword" placeholder="Digite sua senha">
+            </div>
+            
+            <button class="btn btn-primary" onclick="register()">📝 Cadastrar</button>
+            
+            <a class="link" onclick="showLoginForm()">Já tem conta? Faça login</a>
+        </div>
+
+        <!-- Main App -->
+        <div id="mainApp" class="hidden">
+            <p class="subtitle" id="welcomeMessage">Bem-vindo!</p>
+            
+            <!-- Status Display -->
+            <div id="statusDisplay"></div>
+            
+            <!-- Notifications -->
+            <div id="notificationsList" class="notification-list hidden"></div>
+            
+            <!-- Shower Control -->
+            <div id="showerControl">
+                <h3>🚿 Controle do Chuveiro</h3>
+                <p>⏱️ Duração Estimada</p>
+                
+                <div class="duration-selector">
+                    <div class="duration-option" data-duration="5">5 min</div>
+                    <div class="duration-option selected" data-duration="10">10 min</div>
+                    <div class="duration-option" data-duration="15">15 min</div>
+                    <div class="duration-option" data-duration="20">20+ min</div>
+                </div>
+                
+                <button class="btn btn-success" onclick="startShower()">🚿 Usar Chuveiro</button>
+            </div>
+            
+            <!-- Active Session -->
+            <div id="activeSession" class="hidden">
+                <button class="btn btn-danger" onclick="endShower()">🛑 Finalizar Uso</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="updateStatus()">🔄 Atualizar</button>
+                <button class="btn btn-warning" onclick="logout()">🚪 Sair</button>
+            </div>
+            
+            <div class="last-update" id="lastUpdate">Última atualização: há 1 segundo</div>
+        </div>
+
+        <div class="footer">
+            <a href="https://manus.im" target="_blank">Made with Manus</a>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let currentUser = null;
+        let selectedDuration = 10;
+        let socket = null;
+        let deferredPrompt = null;
+        let notificationCount = 0;
+
+        // PWA Install
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').classList.remove('hidden');
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('App instalado');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('installPrompt').classList.add('hidden');
+                });
+            }
+        }
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => console.log('SW registrado'))
+                .catch(error => console.log('SW falhou:', error));
+        }
+
+        // Notificações
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            console.log('Permissão de notificação concedida');
+                            // Registrar para push notifications se disponível
+                            registerForPushNotifications();
+                        }
+                    });
+                } else if (Notification.permission === 'granted') {
+                    registerForPushNotifications();
+                }
+            }
+        }
+
+        function registerForPushNotifications() {
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.ready.then(registration => {
+                    return registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: null // Em produção, usar chave VAPID real
+                    });
+                }).then(subscription => {
+                    console.log('Inscrito para push notifications:', subscription);
+                    // Aqui você enviaria a subscription para o servidor
+                }).catch(err => {
+                    console.log('Erro ao se inscrever para push notifications:', err);
+                });
+            }
+        }
+
+        function showNotification(title, body, options = {}) {
+            const defaultOptions = {
+                body: body,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                vibrate: [200, 100, 200],
+                requireInteraction: true,
+                persistent: true,
+                tag: 'chuveiro-notification',
+                renotify: true,
+                actions: [
+                    {
+                        action: 'view',
+                        title: 'Ver App',
+                        icon: '/icon-192.png'
+                    },
+                    {
+                        action: 'close',
+                        title: 'Fechar',
+                        icon: '/icon-192.png'
+                    }
+                ],
+                data: {
+                    url: window.location.origin,
+                    timestamp: Date.now()
+                }
+            };
+
+            const finalOptions = { ...defaultOptions, ...options };
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+                // Notificação nativa do navegador
+                const notification = new Notification(title, finalOptions);
+                
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+
+                // Auto-fechar após 10 segundos se não for interativa
+                if (!finalOptions.requireInteraction) {
+                    setTimeout(() => {
+                        notification.close();
+                    }, 10000);
+                }
+            }
+
+            // Também enviar via Service Worker para garantir que apareça na tela de bloqueio
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, finalOptions);
+                });
+            }
+        }
+
+        function showShowerNotification(type, username, duration = null) {
+            let title, body, options = {};
+
+            if (type === 'start') {
+                title = '🚿 Chuveiro em Uso';
+                body = `${username} iniciou o uso do chuveiro`;
+                if (duration) {
+                    body += ` por ${duration} minutos`;
+                }
+                options.tag = 'shower-start';
+                options.icon = '/icon-512.png';
+            } else if (type === 'end') {
+                title = '✅ Chuveiro Liberado';
+                body = `${username} finalizou o uso do chuveiro. Agora está livre!`;
+                options.tag = 'shower-end';
+                options.icon = '/icon-512.png';
+                options.vibrate = [300, 100, 300, 100, 300];
+            }
+
+            showNotification(title, body, options);
+        }
+
+        // SocketIO
+        function initSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Conectado ao servidor');
+                socket.emit('join_notifications');
+            });
+            
+            socket.on('notification', (data) => {
+                console.log('Nova notificação:', data);
+                showNotification('🚿 Chuveiro', data.message);
+                addNotificationToList(data);
+                updateNotificationBadge();
+                updateStatus(); // Atualizar status quando receber notificação
+            });
+
+            socket.on('shower_started', (data) => {
+                console.log('Chuveiro iniciado por outro usuário:', data);
+                showShowerNotification('start', data.username, data.duration);
+                updateStatus();
+            });
+
+            socket.on('shower_ended', (data) => {
+                console.log('Chuveiro finalizado por outro usuário:', data);
+                showShowerNotification('end', data.username);
+                updateStatus();
+            });
+
+            socket.on('status_update', (data) => {
+                console.log('Status atualizado:', data);
+                displayStatus(data);
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('Desconectado do servidor');
+            });
+        }
+
+        function addNotificationToList(notification) {
+            const list = document.getElementById('notificationsList');
+            const item = document.createElement('div');
+            item.className = 'notification-item';
+            item.innerHTML = `
+                <strong>${notification.message}</strong>
+                <br><small>${new Date(notification.timestamp).toLocaleTimeString()}</small>
+            `;
+            list.insertBefore(item, list.firstChild);
+            list.classList.remove('hidden');
+            
+            // Limitar a 5 notificações visíveis
+            while (list.children.length > 5) {
+                list.removeChild(list.lastChild);
+            }
+        }
+
+        function updateNotificationBadge() {
+            notificationCount++;
+            const badge = document.getElementById('notificationBadge');
+            badge.textContent = notificationCount;
+            badge.classList.remove('hidden');
+        }
+
+        // Funções de autenticação
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentUser = data.user;
+                    showMainApp();
+                    requestNotificationPermission();
+                    initSocket();
+                } else {
+                    alert(data.error || 'Erro no login');
+                }
+            } catch (error) {
+                alert('Erro de conexão');
+            }
+        }
+
+        async function register() {
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const phone = document.getElementById('registerPhone').value;
+            const password = document.getElementById('registerPassword').value;
+
+            if (!username || !email || !password) {
+                alert('Por favor, preencha todos os campos obrigatórios');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, phone, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Cadastro realizado com sucesso!');
+                    showLoginForm();
+                } else {
+                    alert(data.error || 'Erro no cadastro');
+                }
+            } catch (error) {
+                alert('Erro de conexão');
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                currentUser = null;
+                if (socket) {
+                    socket.disconnect();
+                    socket = null;
+                }
+                showLogin();
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro de conexão');
+            }
+        }
+
+        async function startShower() {
+            try {
+                const duration = document.querySelector('input[name="duration"]:checked')?.value || 10;
+                
+                const response = await fetch('/api/shower/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ duration: parseInt(duration) })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Mostrar notificação de início
+                    showShowerNotification('start', data.user || 'Usuário', duration);
+                    updateStatus();
+                } else {
+                    alert(data.error || 'Erro ao iniciar chuveiro');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro de conexão');
+            }
+        }
+
+        async function endShower() {
+            try {
+                const response = await fetch('/api/shower/end', { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Mostrar notificação de finalização
+                    showShowerNotification('end', data.user || 'Usuário');
+                    updateStatus();
+                } else {
+                    alert(data.error || 'Erro ao finalizar chuveiro');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro de conexão');
+            }
+        }
+
+        async function updateStatus() {
+            try {
+                    updateLastUpdateTime();
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar status');
+            }
+        }
+
+        function displayStatus(status) {
+            const statusDisplay = document.getElementById('statusDisplay');
+            const showerControl = document.getElementById('showerControl');
+            const activeSession = document.getElementById('activeSession');
+
+            if (status.status === 'free') {
+                statusDisplay.innerHTML = `
+                    <div class="status status-free">
+                        🟢 LIVRE - Nenhum chuveiro em uso
+                    </div>
+                `;
+                showerControl.classList.remove('hidden');
+                activeSession.classList.add('hidden');
+            } else {
+                const isCurrentUser = currentUser && status.user === currentUser.username;
+                statusDisplay.innerHTML = `
+                    <div class="status status-occupied">
+                        🔴 EM USO
+                        <br>
+                        ${isCurrentUser ? '✅ Você está usando o chuveiro' : `👤 ${status.user} está usando`}
+                        <br>
+                        ⏱️ ${status.remaining_time} minutos restantes
+                    </div>
+                `;
+                
+                if (isCurrentUser) {
+                    showerControl.classList.add('hidden');
+                    activeSession.classList.remove('hidden');
+                } else {
+                    showerControl.classList.add('hidden');
+                    activeSession.classList.add('hidden');
+                }
+            }
+        }
+
+        function updateLastUpdateTime() {
+            document.getElementById('lastUpdate').textContent = 'Última atualização: há 1 segundo';
+        }
+
+        // Funções de interface
+        function showLoginForm() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            if (currentUser) {
+                document.getElementById('welcomeMessage').textContent = `Bem-vindo, ${currentUser.username}!`;
+            }
+            
+            updateStatus();
+            setInterval(updateStatus, 5000); // Atualizar a cada 5 segundos
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Seletor de duração
+            document.querySelectorAll('.duration-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.duration-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedDuration = parseInt(this.dataset.duration);
+                });
+            });
+
+            // Enter key para login
+            document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+
+            // Enter key para registro
+            document.getElementById('registerPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    register();
+                }
+            });
+
+            // Verificar se já está logado
+            fetch('/api/me')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.user) {
+                        currentUser = data.user;
+                        showMainApp();
+                        requestNotificationPermission();
+                        initSocket();
+                    }
+                })
+                .catch(() => {
+                    // Usuário não logado, mostrar tela de login
+                });
+        });
+    </script>
+</body>
+</html>
+
