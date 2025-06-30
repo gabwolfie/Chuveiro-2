@@ -1,10 +1,7 @@
 services:
   - type: web
-    name: chuveiro-app
+    name: chuveiro
     env: python
-    plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn --workers 4 --bind 0.0.0.0:$PORT src.main:app"
-    envVars:
-      - key: FLASK_ENV
-        value: production
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    autoDeploy: true
